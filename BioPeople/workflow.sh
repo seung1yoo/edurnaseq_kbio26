@@ -80,15 +80,25 @@ ROOT_DEG_PAO1_SAMPLES=(
 # 2. Create output directories
 ###############################################################################
 
-mkdir -p \
-    00.Rawdata \
-    01.Clean \
-    02.Align \
-    03.Cuffquant \
-    04.Cuffnorm/Root \
-    04.Cuffnorm/Shoot \
-    05.Cuffdiff/Root \
-    logs
+CMD=(
+    mkdir -p \
+        00.Rawdata \
+        01.Clean \
+        02.Align \
+        03.Cuffquant \
+        04.Cuffnorm/Root \
+        04.Cuffnorm/Shoot \
+        05.Cuffdiff/Root \
+        logs
+)
+printf '[CMD]'
+printf '%q ' "${CMD[@]}"
+printf '\n'
+
+if [[ "${DRY_RUN}" == false ]]
+then
+    "${CMD[@]}"
+fi
 
 ###############################################################################
 # 3. Check and link FASTQ files
@@ -105,11 +115,31 @@ do
         exit 1
     fi
 
-    ln -sfn "$(realpath "${R1}")" \
-        "00.Rawdata/${SAMPLE}_R1.fastq.gz"
+    CMD=(
+        ln -sfn "$(realpath "${R1}")" \
+            "00.Rawdata/${SAMPLE}_R1.fastq.gz"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '\n'
 
-    ln -sfn "$(realpath "${R2}")" \
-        "00.Rawdata/${SAMPLE}_R2.fastq.gz"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}"
+    fi
+
+    CMD=(
+        ln -sfn "$(realpath "${R2}")" \
+            "00.Rawdata/${SAMPLE}_R2.fastq.gz"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '\n'
+
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}"
+    fi
 done
 
 ###############################################################################
@@ -178,7 +208,7 @@ do
         GROUP="PA01"
     fi
 
-    if [[ -d "${ALIGN_DIR}" ]]
+    if [[ "${DRY_RUN}" == false && -d "${ALIGN_DIR}" ]]
     then
         echo "[INFO][TopHat2] Removing incomplete output: ${ALIGN_DIR}"
         rm -rf "${ALIGN_DIR}"
@@ -200,9 +230,13 @@ do
     )
     printf '[CMD]'
     printf '%q ' "${CMD[@]}"
-        > "logs/${SAMPLE}.tophat.log" 2>&1
+    printf '> %q 2>&1\n' "logs/${SAMPLE}.tophat.log"
 
-    echo "[DONE][TopHat2] ${SAMPLE}"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}" > "logs/${SAMPLE}.tophat.log" 2>&1
+        echo "[DONE][TopHat2] ${SAMPLE}"
+    fi
 done
 
 
@@ -223,24 +257,32 @@ do
 
     echo "[RUN ][Cuffquant] ${SAMPLE}"
 
-    if [[ -d "${CUFFQUANT_DIR}" ]]
+    if [[ "${DRY_RUN}" == false && -d "${CUFFQUANT_DIR}" ]]
     then
         echo "[INFO][Cuffquant] Removing incomplete output: ${CUFFQUANT_DIR}"
         rm -rf "${CUFFQUANT_DIR}"
     fi
 
-    cuffquant \
-        --output-dir "${CUFFQUANT_DIR}" \
-        --frag-bias-correct "${REFERENCE}" \
-        --multi-read-correct \
-        --num-threads "${THREADS}" \
-        --library-type fr-unstranded \
-        --mask-file "${MASK_GTF}" \
-        "${GTF}" \
-        "02.Align/${SAMPLE}/accepted_hits.bam" \
-        > "logs/${SAMPLE}.cuffquant.log" 2>&1
+    CMD=(
+        cuffquant \
+            --output-dir "${CUFFQUANT_DIR}" \
+            --frag-bias-correct "${REFERENCE}" \
+            --multi-read-correct \
+            --num-threads "${THREADS}" \
+            --library-type fr-unstranded \
+            --mask-file "${MASK_GTF}" \
+            "${GTF}" \
+            "02.Align/${SAMPLE}/accepted_hits.bam"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '> %q 2>&1\n' "logs/${SAMPLE}.cuffquant.log"
 
-    echo "[DONE][Cuffquant] ${SAMPLE}"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}" > "logs/${SAMPLE}.cuffquant.log" 2>&1
+        echo "[DONE][Cuffquant] ${SAMPLE}"
+    fi
 done
 
 
@@ -283,26 +325,37 @@ then
 else
     echo "[RUN ][Cuffnorm] Root"
 
-    if [[ -d "${ROOT_CUFFNORM_DIR}" ]]
+    if [[ "${DRY_RUN}" == false && -d "${ROOT_CUFFNORM_DIR}" ]]
     then
         rm -rf "${ROOT_CUFFNORM_DIR}"
     fi
 
-    mkdir -p "${ROOT_CUFFNORM_DIR}"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        mkdir -p "${ROOT_CUFFNORM_DIR}"
+    fi
 
-    cuffnorm \
-        --output-dir "${ROOT_CUFFNORM_DIR}" \
-        --labels Root-Control,Root-PA01 \
-        --num-threads "${THREADS}" \
-        --library-type fr-unstranded \
-        --library-norm-method classic-fpkm \
-        --output-format simple-table \
-        "${GTF}" \
-        "${ROOT_CONTROL_CXB}" \
-        "${ROOT_PAO1_CXB}" \
-        > logs/Root.cuffnorm.log 2>&1
+    CMD=(
+        cuffnorm \
+            --output-dir "${ROOT_CUFFNORM_DIR}" \
+            --labels Root-Control,Root-PA01 \
+            --num-threads "${THREADS}" \
+            --library-type fr-unstranded \
+            --library-norm-method classic-fpkm \
+            --output-format simple-table \
+            "${GTF}" \
+            "${ROOT_CONTROL_CXB}" \
+            "${ROOT_PAO1_CXB}"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '> %q 2>&1\n' "logs/Root.cuffnorm.log"
 
-    echo "[DONE][Cuffnorm] Root"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}" > logs/Root.cuffnorm.log 2>&1
+        echo "[DONE][Cuffnorm] Root"
+    fi
 fi
 
 
@@ -327,26 +380,37 @@ then
 else
     echo "[RUN ][Cuffnorm] Shoot"
 
-    if [[ -d "${SHOOT_CUFFNORM_DIR}" ]]
+    if [[ "${DRY_RUN}" == false && -d "${SHOOT_CUFFNORM_DIR}" ]]
     then
         rm -rf "${SHOOT_CUFFNORM_DIR}"
     fi
 
-    mkdir -p "${SHOOT_CUFFNORM_DIR}"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        mkdir -p "${SHOOT_CUFFNORM_DIR}"
+    fi
 
-    cuffnorm \
-        --output-dir "${SHOOT_CUFFNORM_DIR}" \
-        --labels Shoot-Control,Shoot-PA01 \
-        --num-threads "${THREADS}" \
-        --library-type fr-unstranded \
-        --library-norm-method classic-fpkm \
-        --output-format simple-table \
-        "${GTF}" \
-        "${SHOOT_CONTROL_CXB}" \
-        "${SHOOT_PAO1_CXB}" \
-        > logs/Shoot.cuffnorm.log 2>&1
+    CMD=(
+        cuffnorm \
+            --output-dir "${SHOOT_CUFFNORM_DIR}" \
+            --labels Shoot-Control,Shoot-PA01 \
+            --num-threads "${THREADS}" \
+            --library-type fr-unstranded \
+            --library-norm-method classic-fpkm \
+            --output-format simple-table \
+            "${GTF}" \
+            "${SHOOT_CONTROL_CXB}" \
+            "${SHOOT_PAO1_CXB}"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '> %q 2>&1\n' "logs/Shoot.cuffnorm.log"
 
-    echo "[DONE][Cuffnorm] Shoot"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}" > logs/Shoot.cuffnorm.log 2>&1
+        echo "[DONE][Cuffnorm] Shoot"
+    fi
 fi
 
 ###############################################################################
@@ -370,27 +434,37 @@ then
 else
     echo "[RUN ][Cuffdiff] Root DEG"
 
-    if [[ -d "${ROOT_CUFFDIFF_DIR}" ]]
+    if [[ "${DRY_RUN}" == false && -d "${ROOT_CUFFDIFF_DIR}" ]]
     then
         rm -rf "${ROOT_CUFFDIFF_DIR}"
     fi
 
-    mkdir -p "${ROOT_CUFFDIFF_DIR}"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        mkdir -p "${ROOT_CUFFDIFF_DIR}"
+    fi
 
-    cuffdiff \
-        --output-dir "${ROOT_CUFFDIFF_DIR}" \
-        --labels Root-Control,Root-PA01 \
-        --frag-bias-correct "${REFERENCE}" \
-        --multi-read-correct \
-        --num-threads "${THREADS}" \
-        --library-type fr-unstranded \
-        --library-norm-method classic-fpkm \
-        --dispersion-method pooled \
-        "${GTF}" \
-        "${ROOT_DEG_CONTROL_CXB}" \
-        "${ROOT_DEG_PAO1_CXB}" \
-        > logs/Root.cuffdiff.log 2>&1
+    CMD=(
+        cuffdiff \
+            --output-dir "${ROOT_CUFFDIFF_DIR}" \
+            --labels Root-Control,Root-PA01 \
+            --frag-bias-correct "${REFERENCE}" \
+            --multi-read-correct \
+            --num-threads "${THREADS}" \
+            --library-type fr-unstranded \
+            --library-norm-method classic-fpkm \
+            --dispersion-method pooled \
+            "${GTF}" \
+            "${ROOT_DEG_CONTROL_CXB}" \
+            "${ROOT_DEG_PAO1_CXB}"
+    )
+    printf '[CMD]'
+    printf '%q ' "${CMD[@]}"
+    printf '> %q 2>&1\n' "logs/Root.cuffdiff.log"
 
-    echo "[DONE][Cuffdiff] Root DEG"
+    if [[ "${DRY_RUN}" == false ]]
+    then
+        "${CMD[@]}" > logs/Root.cuffdiff.log 2>&1
+        echo "[DONE][Cuffdiff] Root DEG"
+    fi
 fi
-
