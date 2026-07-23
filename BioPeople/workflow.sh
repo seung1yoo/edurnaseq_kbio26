@@ -16,11 +16,11 @@ set -euo pipefail
 # 1. Variables
 ###############################################################################
 
-THREADS=16
-FASTP_THREADS=3
+THREADS=18
+FASTP_THREADS=6
 DRY_RUN=true
 
-RAWFASTQ_DIR="../readyfastq"
+RAWFASTQ_DIR="../demux2ready/readyfastq"
 
 REFERENCE="BioResource/Reference/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa"
 GTF="BioResource/GeneModel/Arabidopsis_thaliana.TAIR10.44.gtf"
