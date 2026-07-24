@@ -11,26 +11,13 @@ from pathlib import Path
 DEFAULT_PATTERN = "BioPeople/02.Align/*/align_summary.txt"
 
 FIELDS = [
-    "sample",
-    "left_input",
-    "left_mapped",
-    "left_mapped_pct",
-    "left_multiple",
-    "left_multiple_pct",
-    "left_multiple_gt20",
-    "right_input",
-    "right_mapped",
-    "right_mapped_pct",
-    "right_multiple",
-    "right_multiple_pct",
-    "right_multiple_gt20",
-    "overall_mapping_rate",
-    "aligned_pairs",
-    "pair_multiple",
-    "pair_multiple_pct",
-    "discordant",
-    "discordant_pct",
-    "concordant_pair_alignment_rate",
+    "Sample",
+    "Input Reads",
+    "Mapped Reads",
+    "Mapped Rate (%)",
+    "Multi-mapped Reads",
+    "Multi-mapped Rate (%)",
+    "Concordant Pair Rate (%)",
 ]
 
 
@@ -68,52 +55,25 @@ def parse_align_summary(path):
     left = parse_section(text, "Left")
     right = parse_section(text, "Right")
 
-    overall_match = re.search(r"(?P<rate>[\d.]+)% overall read mapping rate\.", text)
-    aligned_pairs_match = re.search(r"Aligned pairs:\s*(?P<count>\d+)", text)
-    pair_multiple_match = re.search(
-        r"Aligned pairs:\s*\d+\s*"
-        r"of these:\s*(?P<count>\d+)\s*\(\s*(?P<pct>[\d.]+)%\) have multiple alignments",
-        text,
-        re.MULTILINE,
-    )
-    discordant_match = re.search(
-        r"(?P<count>\d+)\s*\(\s*(?P<pct>[\d.]+)%\) are discordant alignments",
-        text,
-    )
     concordant_match = re.search(r"(?P<rate>[\d.]+)% concordant pair alignment rate\.", text)
 
-    required = {
-        "overall mapping rate": overall_match,
-        "aligned pairs": aligned_pairs_match,
-        "pair multiple alignments": pair_multiple_match,
-        "discordant alignments": discordant_match,
-        "concordant pair alignment rate": concordant_match,
-    }
-    missing = [name for name, match in required.items() if match is None]
-    if missing:
-        raise ValueError(f"Could not parse {', '.join(missing)}")
+    if concordant_match is None:
+        raise ValueError("Could not parse concordant pair alignment rate")
+
+    input_reads = left["input"] + right["input"]
+    mapped_reads = left["mapped"] + right["mapped"]
+    multi_mapped_reads = left["multiple"] + right["multiple"]
+    mapped_rate = mapped_reads / input_reads * 100
+    multi_mapped_rate = multi_mapped_reads / mapped_reads * 100
 
     return {
-        "sample": sample,
-        "left_input": left["input"],
-        "left_mapped": left["mapped"],
-        "left_mapped_pct": left["mapped_pct"],
-        "left_multiple": left["multiple"],
-        "left_multiple_pct": left["multiple_pct"],
-        "left_multiple_gt20": left["multiple_gt20"],
-        "right_input": right["input"],
-        "right_mapped": right["mapped"],
-        "right_mapped_pct": right["mapped_pct"],
-        "right_multiple": right["multiple"],
-        "right_multiple_pct": right["multiple_pct"],
-        "right_multiple_gt20": right["multiple_gt20"],
-        "overall_mapping_rate": float(overall_match.group("rate")),
-        "aligned_pairs": parse_int(aligned_pairs_match.group("count")),
-        "pair_multiple": parse_int(pair_multiple_match.group("count")),
-        "pair_multiple_pct": float(pair_multiple_match.group("pct")),
-        "discordant": parse_int(discordant_match.group("count")),
-        "discordant_pct": float(discordant_match.group("pct")),
-        "concordant_pair_alignment_rate": float(concordant_match.group("rate")),
+        "Sample": sample,
+        "Input Reads": f"{input_reads:,}",
+        "Mapped Reads": f"{mapped_reads:,}",
+        "Mapped Rate (%)": f"{mapped_rate:.1f}%",
+        "Multi-mapped Reads": f"{multi_mapped_reads:,}",
+        "Multi-mapped Rate (%)": f"{multi_mapped_rate:.1f}%",
+        "Concordant Pair Rate (%)": f"{float(concordant_match.group('rate')):.1f}%",
     }
 
 
@@ -130,7 +90,7 @@ def expand_inputs(inputs):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert TopHat align_summary.txt files into a TSV table."
+        description="Summarize TopHat2 align_summary.txt files into one TSV row per sample."
     )
     parser.add_argument(
         "inputs",
