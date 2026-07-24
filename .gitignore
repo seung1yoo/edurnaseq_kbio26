@@ -1,3 +1,4 @@
 BioPeople/*
 !BioPeople/workflow.sh
+!BioPeople/align_summary_table.py
 BioResource/*
